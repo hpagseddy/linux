@@ -1,0 +1,20 @@
+dir /dev 755 0 0
+rod /dev/mmcblk1 600 0 0 b 179 0
+nod /dev/mmcblk1p1 600 0 0 b 179 1
+nod /dev/mmcblk1p2 600 0 0 b 179 2
+nod /dev/mmcblk1p3 600 0 0 b 179 3
+nod /dev/mmcblk1p4 600 0 0 b 179 4
+nod /dev/mmcblk1p5 600 0 0 b 179 5
+nod /dev/mmcblk1p6 600 0 0 b 179 6
+nod /dev/mmcblk1p7 600 0 0 b 179 7
+nod /dev/mmcblk1p8 600 0 0 b 179 8
+nod /dev/mmcblk1p9 600 0 0 b 179 9
+nod /dev/mmcblk1p10 600 0 0 b 179 10
+nod /dev/mmcblk1p11 600 0 0 b 179 11
+nod /dev/mmcblk1p12 600 0 0 b 179 12
+nod /dev/console 600 0 0 c 5 1
+dir /bin 755 0 0
+dir /proc 755 0 0
+dir /sys 755 0 0
+file /bin/busybox usr/busybox.static 755 0 0
+file /init usr/init 755 0 0
