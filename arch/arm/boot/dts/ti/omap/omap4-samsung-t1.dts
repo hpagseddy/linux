@@ -1,5 +1,8 @@
 /dts-v1/;
 
+#include "dt-bindings/gpio/gpio.h"
+#include <dt-bindings/interrupt-controller/irq.h>
+#include <dt-bindings/input/input.h>
 #include "omap443x.dtsi"
 
 / {
@@ -27,6 +30,35 @@
 		#address-cells = <1>;
 		#size-cells = <1>;
 		ranges;
+
+		/*framebuffer@bef00000 {
+			compatible = "simple-framebuffer";
+			reg = <0xbef00000 (480 * 800 * 4)>;
+			width = <480>;
+			height = <800>;
+			stride = <(480 * 4)>;
+			format = "a8r8g8b8";
+
+			vci-supply = <&vaux3>;
+		};*/
+	};
+
+	i2c-gpio-5 {
+		compatible = "i2c-gpio";
+		sda-gpios = <&gpio4 2 (GPIO_ACTIVE_HIGH | GPIO_OPEN_DRAIN)>;
+		scl-gpios = <&gpio4 3 (GPIO_ACTIVE_HIGH | GPIO_OPEN_DRAIN)>;
+		i2c-gpio,delay-us = <10>;
+		#address-cells = <1>;
+		#size-cells = <0>;
+	};
+
+	i2c-gpio-7 {
+		compatible = "i2c-gpio";
+		sda-gpios = <&gpio2 30 (GPIO_ACTIVE_HIGH | GPIO_OPEN_DRAIN)>;
+		scl-gpios = <&gpio2 29 (GPIO_ACTIVE_HIGH | GPIO_OPEN_DRAIN)>;
+		i2c-gpio,delay-us = <3>;
+		#address-cells = <1>;
+		#size-cells = <0>;
 	};
 
 	reg_t1_vwlan: regulator-t1-vwlan {
@@ -42,7 +74,105 @@
 		enable-active-high;
 	};
 
+	reg_touch_ldo_en: regulator-touch-ldo-en  {
+		compatible = "regulator-fixed";
+		regulator-name = "touch_ldo_en";
+		regulator-max-microvolt = <2800000>;
+		regulator-min-microvolt = <2800000>;
+		gpios = <&gpio2 22 GPIO_ACTIVE_HIGH>;
+		regulator-always-on;
+		enable-active-high;
+	};
+
+	spi_lcd: spi {
+		compatible = "spi-gpio";
+		#address-cells = <1>;
+		#size-cells = <0>;
+		//pinctrl-names = "default";
+		//pinctrl-0 = <&spi_gpio_pins>;
+
+		num-chipselects = <1>;
+		cs-gpios = <&gpio5 26 GPIO_ACTIVE_LOW>;
+		sck-gpios = <&gpio5 23 GPIO_ACTIVE_HIGH>;
+		mosi-gpios = <&gpio5 24 GPIO_ACTIVE_HIGH>;
+
+		panel@0 {
+			compatible = "samsung,ld9040";
+			reg = <0>;
+			vdd3-supply = <&vcxio>;
+			vci-supply = <&vaux3>;
+			reset-gpios = <&gpio2 3 0>;
+			spi-max-frequency = <1200000>;
+			spi-cpol;
+			spi-cpha;
+			power-on-delay = <10>;
+			reset-delay = <10>;
+			panel-width-mm = <90>;
+			panel-height-mm = <154>;
+			display-timings {
+				timing {
+					clock-frequency = <23492370>;
+					hactive = <480>;
+					vactive = <800>;
+					hback-porch = <16>;
+					hfront-porch = <16>;
+					vback-porch = <2>;
+					vfront-porch = <28>;
+					hsync-len = <2>;
+					vsync-len = <1>;
+					hsync-active = <0>;
+					vsync-active = <0>;
+					de-active = <0>;
+					pixelclk-active = <0>;
+				};
+			};
+
+			port {
+				lcd_in: endpoint {
+					remote-endpoint = <&dpi_out>;
+				};
+			};
+		};
+	};
+
+	gpio-keys {
+		compatible = "gpio-keys";
+
+		power {
+			label = "power";
+			gpios = <&gpio1 3 GPIO_ACTIVE_HIGH>;
+			linux,code = <KEY_POWER>;
+			wakeup-source;
+		};
+
+		home {
+			linux,code = <KEY_HOME>;
+			label = "home"; /* GPIO31 */
+			gpios = <&gpio1 31 GPIO_ACTIVE_LOW>;
+		};
+
+
+		button-volup {
+			linux,code = <KEY_VOLUMEUP>;
+			label = "volume_up"; /* GPIO30 */
+			gpios = <&gpio1 30 GPIO_ACTIVE_LOW>;
+		};
+
+		button-voldown {
+			linux,code = <KEY_VOLUMEDOWN>;
+			label = "volume_down"; /* GPIO8 */
+			gpios = <&gpio1 8 GPIO_ACTIVE_LOW>;
+		};
+	};
 };
+
+/*&omap4_pmx_wkup {
+	twl6030_wkup_pins: pinmux_twl6030_wkup_pins {
+		pinctrl-single,pins = <
+			OMAP4_IOPAD(0x54, PIN_OUTPUT_PULLUP | MUX_MODE2)
+		>;
+	};
+};*/
 
 &omap4_pmx_core {
 	pinctrl-names = "default";
@@ -75,12 +205,17 @@
 		>;
 	};
 
-	mcspi4_pins: pinmux_mcspi4_pins {
+	/*spi_gpio_pins: pinmux_spi_gpio_pins {
 		pinctrl-single,pins = <
-			OMAP4_IOPAD(0x154, PIN_OFF_OUTPUT_LOW | MUX_MODE0)	/* mcspi4_clk */
-			OMAP4_IOPAD(0x156, PIN_OFF_OUTPUT_LOW | MUX_MODE0)	/* mcspi4_simo */
-			OMAP4_IOPAD(0x158, PIN_OFF_OUTPUT_LOW | MUX_MODE3)	/* mcspi4_somi */
-			OMAP4_IOPAD(0x15a, PIN_OFF_OUTPUT_LOW | MUX_MODE0)	/* mcspi4_cs0 */
+			OMAP4_IOPAD(0x154, PIN_OFF_OUTPUT_LOW | MUX_MODE0)
+			OMAP4_IOPAD(0x156, PIN_OFF_OUTPUT_LOW | MUX_MODE0)
+			OMAP4_IOPAD(0x15a, PIN_OFF_OUTPUT_LOW | MUX_MODE0)
+		>;
+	};*/
+
+	touch_pins: pinmux_touch_pins {
+		pinctrl-single,pins = <
+			OMAP4_IOPAD(0x06c, PIN_INPUT | MUX_MODE3)
 		>;
 	};
 
@@ -167,13 +302,20 @@
 			OMAP4_IOPAD(0x096, PIN_OUTPUT | MUX_MODE3)		/* gpmc_ncs7.gpio_104 */
 		>;
 	};
+
+	/*twl6030_pins: pinmux_twl6030_pins {
+		pinctrl-single,pins = <
+			OMAP4_IOPAD(0x19e, WAKEUP_EN | PIN_INPUT_PULLUP | MUX_MODE0)
+		>;
+	};*/
 };
 
 &mmc1 {
+	status = "okay";
 	pinctrl-names = "default";
 	pinctrl-0 = <&mmc1_pins>;
 
-	vmmc-supply = <&vmmc>;
+	vmmc-supply = <&vaux1>;
 	bus-width = <4>;
 };
 
@@ -181,7 +323,7 @@
 	pinctrl-names = "default";
 	pinctrl-0 = <&mmc2_pins>;
 
-	vmmc-supply = <&vaux1>;
+	vmmc-supply = <&vmmc>;
 	ti,non-removable;
 	bus-width = <8>;
 };
@@ -211,31 +353,40 @@
 	};
 };
 
-&mcspi1 {
-	status = "disabled";
-};
-
-&mcspi2 {
-	status = "disabled";
-};
-
-&mcspi3 {
-	status = "disabled";
-};
-
-&mcspi4 {
-	status = "disabled";
-};
-
 &i2c1 {
 	pinctrl-names = "default";
 	pinctrl-0 = <&i2c1_pins>;
 
+	clock-frequency = <400000>;
+
 	twl: twl@48 {
 		reg = <0x48>;
-		/* IRQ# = 7 */
+
+		/* SPI = 0, IRQ# = 7, 4 = active high level-sensitive */
 		interrupts = <GIC_SPI 7 IRQ_TYPE_LEVEL_HIGH>; /* IRQ_SYS_1N cascaded to gic */
+		interrupt-parent = <&gic>;
+
+		twl_power: power {
+			compatible = "ti,twl6030-power";
+			ti,system-power-controller;
+		};
 	};
+};
+
+&i2c4 {
+        kxtf9: accelerometer@f {
+                compatible = "kionix,kxtf9";
+                reg = <0x0f>;
+
+                vdd-supply = <&vaux2>;
+
+                interrupt-parent = <&gpio2>;
+                interrupts = <2 IRQ_TYPE_EDGE_RISING>;
+
+                mount-matrix = "0", "-1", "0",
+                               "-1", "0", "0",
+                               "0", "0", "1";
+        };
 };
 
 &dss {
@@ -243,10 +394,93 @@
 
 	pinctrl-names = "default";
 	pinctrl-0 = <&dss_dpi_pins>;
+
+	vdda_video-supply = <&vcxio>;
+
+	port {
+		dpi_out: endpoint {
+			remote-endpoint = <&lcd_in>;
+			data-lines = <24>;
+		};
+	};
 };
 
 #include "twl6030.dtsi"
 #include "twl6030_omap4.dtsi"
+
+&vaux1 {
+	regulator-min-microvolt = <1000000>;
+	regulator-max-microvolt = <3000000>;
+	regulator-always-on;
+};
+
+&vaux2 {
+	regulator-min-microvolt = <1800000>;
+	regulator-max-microvolt = <1800000>;
+};
+
+&vaux3 {
+	regulator-min-microvolt = <3000000>;
+	regulator-max-microvolt = <3000000>;
+};
+
+&vmmc {
+	regulator-min-microvolt = <1200000>;
+	regulator-max-microvolt = <3000000>;
+};
+
+&vpp {
+	regulator-min-microvolt = <1800000>;
+	regulator-max-microvolt = <2500000>;
+	regulator-state-mem {
+		regulator-off-in-suspend;
+	};
+};
+
+&vusim {
+	regulator-min-microvolt = <1800000>;
+	regulator-max-microvolt = <3000000>;
+	regulator-state-mem {
+		regulator-off-in-suspend;
+	};
+};
+
+&vana {
+	regulator-min-microvolt = <2100000>;
+	regulator-max-microvolt = <2100000>;
+	regulator-always-on;
+};
+
+&vcxio {
+	regulator-min-microvolt = <1800000>;
+	regulator-max-microvolt = <1800000>;
+	regulator-always-on;
+	regulator-state-mem {
+		regulator-off-in-suspend;
+	};
+};
+
+&vdac {
+	regulator-min-microvolt = <1800000>;
+	regulator-max-microvolt = <1800000>;
+};
+
+&vusb {
+	regulator-min-microvolt = <3300000>;
+	regulator-max-microvolt = <3300000>;
+	regulator-state-mem {
+		regulator-off-in-suspend;
+	};
+};
+
+&v2v1 {
+	regulator-min-microvolt = <2100000>;
+	regulator-max-microvolt = <2100000>;
+	regulator-always-on;
+	regulator-state-mem {
+		regulator-off-in-suspend;
+	};
+};
 
 &twl_usb_comparator {
 	usb-supply = <&vusb>;
@@ -258,17 +492,17 @@
 	power = <50>;
 };
 
-&i2c2 {
-	pinctrl-names = "default";
-	pinctrl-0 = <&i2c2_pins>;
-};
-
 &i2c3 {
 	pinctrl-names = "default";
 	pinctrl-0 = <&i2c3_pins>;
-};
 
-&i2c4 {
-	pinctrl-names = "default";
-	pinctrl-0 = <&i2c4_pins>;
+	touchscreen@4a {
+        	compatible = "atmel,maxtouch";
+        	reg = <0x4a>;
+        	pinctrl-names = "default";
+        	pinctrl-0 = <&touch_pins>;
+
+		interrupt-parent = <&gpio2>;
+		interrupts = <14 IRQ_TYPE_EDGE_FALLING>;
+	};
 };
